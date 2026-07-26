@@ -19,7 +19,7 @@ Hedge Mode is the most powerful — and most dangerous — way to trade perpetua
 A LONG losing $50 while a SHORT gains $80 is a **winning cycle**. Without combined PnL awareness, your bot will close the winning SHORT too early and let the LONG bleed. **HCM — Hedge Capital Management** treats both positions as one trade, always.
 
 ### 💹 Combined PnL Target
-Set a profit target in **absolute USD** or as a **% of wallet**. When `LONG uPnL + SHORT uPnL ≥ target`, HCM closes **both sides atomically** — LONG via the master, SHORT via a direct adapter call. No lag, no partial exposure, no waiting for individual exits to line up.
+Set a profit target in **absolute USD** or as a **% of wallet**. When `LONG uPnL + SHORT uPnL ≥ target`, HCM closes **both sides atomically** — LONG via the master, SHORT via a direct call. No lag, no partial exposure, no waiting for individual exits to line up.
 
 ### 🛑 Combined Drawdown Stop
 If the combined unrealized PnL falls below `-$X`, both sides close immediately. Prevents the classic hedge failure mode: both sides bleeding simultaneously until margin is exhausted.
@@ -84,13 +84,13 @@ The full OrderFlow engine from Wick Magic Futures is included and adapted for bi
 
 **🏦 Institution Hours** — Full power during 7–21 UTC. Scout mode (raised conviction bar) or full block outside session hours. Applies to both LONG and SHORT entries simultaneously.
 
-### 📊 ATR Strength Classifier *(Hedge Exclusive)*
-Reads real-time volatility regime and adjusts entry thresholds automatically. Dead market? Thresholds raised to avoid low-conviction entries. Extreme volatility (rekt regime)? Thresholds raised to avoid getting caught in whipsaws. Five regimes: Dead / Weak / Average / Strong / Rekt. Active in all presets.
+### 📊 ATR Strength Classifier *(Wick Magic Exclusive)*
+Reads real-time volatility regime and adjusts entry thresholds automatically. Dead market? Thresholds raised to avoid low-conviction entries. Extreme volatility (rekt regime)? Thresholds raised to avoid getting caught in whipsaws. Five regimes: Dead / Weak / Average / Strong / Rekt. Active in all presets — shared across the whole Wick Magic family (Spot, Futures, Hedge), not unique to hedge mode.
 
-### 📉 ROC Momentum Filter *(Hedge Exclusive)*
-Pre-entry gate that confirms momentum is alive before allowing an order. If the move is fading — measured over configurable bars — the entry is blocked. Waits for a fresh burst instead of chasing the tail. New entries only. DCA into existing positions is never affected. Active in all presets.
+### 📉 ROC Momentum Filter *(Wick Magic Exclusive)*
+Pre-entry gate that confirms momentum is alive before allowing an order. If the move is fading — measured over configurable bars — the entry is blocked. Waits for a fresh burst instead of chasing the tail. New entries only. DCA into existing positions is never affected. Active in all presets — shared across the whole Wick Magic family (Spot, Futures, Hedge), not unique to hedge mode.
 
-> 📖 [OrderFlow Engine →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#3-orderflow-trading-in-hedge-mode) · [ATR Strength →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#11-atr-strength-classifier-hedge-exclusive) · [ROC Filter →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#12-roc-momentum-filter-hedge-exclusive)
+> 📖 [OrderFlow Engine →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#3-orderflow-trading-in-hedge-mode) · [ATR Strength →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-11-atr-strength-classifier) · [ROC Filter →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-12-roc-momentum-filter)
 
 ---
 
@@ -115,6 +115,13 @@ In hedge mode, positive funding means longs pay and shorts *receive*. A naive gu
 - **Negative funding** → only new SHORT entries blocked. LONG entries free.
 
 The receiving side is never penalized. **Strongly recommended ON for all hedge setups.**
+
+**📈 Open Interest Guard — Hyperliquid**
+Two independent gates, both market-wide (not your own position):
+- **Absolute OI Guard** — blocks new entries and DCA when the coin's total Open Interest notional exceeds your configured ceiling. A proxy for an over-leveraged, squeeze-prone market.
+- **OI Delta Guard** — blocks new entries and DCA when Open Interest has moved sharply, up or down, within a trailing window. A sudden surge or collapse often precedes cascading liquidations.
+
+Both guards are Hyperliquid-only for now.
 
 > 📖 [Kill Position →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#13-kill-position-bidirectional-hedge-edition) · [Liquidation Guard →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#14-liquidation-guard-bidirectional-protection) · [Funding Rate →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#15-funding-rate-intelligence-side-aware)
 
@@ -170,45 +177,97 @@ One dropdown. Full configuration applied instantly. Your personal settings (Tota
 
 ## 📟 The Hedge Sidebar — Both Positions, One View
 
+The master sidebar shows both legs of the hedge at once — position, ROE, uPnL, liquidation price, and wallet balance for LONG and SHORT side by side — plus every guard, filter, and score driving the strategy's decisions, live on every tick. Here's a real v1.1.7 example:
+
 ```text
-🌊 WM Hedge v1.0.6         LONG
-ROC (annualized)            312.0%
-📊 Market Type              🐂 BULLISH
-──────────────────────────────────────
-── 🔴 SHORT ──              0.0430 @ 66420.0
-💰 SHORT ROE                -0.182%
-📊 SHORT uPnL               -0.31 USDT
-💥 SHORT Liq                72310.00
-💸 Funding                  0.0100%
-🏦 Wallet Bal               520.40 USDT
-── 🟢 LONG ──               0.0420 @ 65800.0
-──────────────────────────────────────
+🌊 WM Hedge v1.1.7                  LONG
+📊 Market Type              ⬜ NEUTRAL
+ROC (annualized)           0.0%
+────────────────────────────────────────
+── 🟢 LONG ──                   22.1900 @ 59.7137
+💰 LONG ROE                 -8.269%
+📊 LONG uPnL                -23.25 USDC
+💥 LONG Liq                 n/a
+💸 Funding                  -0.0003%
+🏦 Wallet Bal (LONG)        4420.95 USDC
+── 🔴 SHORT ──                  0.5700 @ 57.4236
+💰 SHORT ROE                -10.818%
+📊 SHORT uPnL               -0.71 USDC
+💥 SHORT Liq                567.46
+💸 Funding                  -0.0003%
+🏦 Wallet Bal (SHORT)       312.52 USDC
+────────────────────────────────────────
 ── 🏦 HCM ──
-💹 Combined uPnL            +1.24 USDT
-🎯 Target (USDT)            1.24 / $5.00 (+24%)
-🛑 Drawdown Stop            1.24 / -$10.00 (0%)
-⚖️ L/S Ratio                1.95 (target 2.00) ✅
-🕐 Cycle Age                2.3h / 48.0h
-──────────────────────────────────────
-🌊 Signal (LONG)            🟢 BULLISH
-⚖️ Imbalance                0.0612
-🟢 Buy threshold            0.0580
-🔴 Sell threshold           -0.0520
-🧬 GA samples               850 / 180 ✓
+💹 Combined uPnL            -23.96 USD
+⚖️ L/S Ratio               38.93 (target 2.60) — LONG blocked
+────────────────────────────────────────
+🌊 Signal (LONG)            🔴 BEARISH
+⚖️ Imbalance               -0.903
+🟢 Buy threshold            0.05
+🔴 Sell threshold           -0.0561
+🧬 GA samples               700 / 120 ✓
+🧊 Iceberg bid              NO
+🧊 Iceberg ask              NO
 🪤 Trap guard               CLEAR
-📊 ATR Strength             📈 AVERAGE ×1.00
+🔬 PTH trades               1000 (0s ago)
+🔄 Rebuy enabled            YES
+🔒 Above guard              WAITING PARTIAL
+📉 Next DCA (drop)          ⛔ S/R 2/2
+📈 Scale up                 OFF
+🏗️ S/R gate                ON (±1%)
+🏗️ S/R zone                2/2
+🔄 S/R DirExit              OFF
+🐋 Absorption               ON
+📊 ATR Strength             💀 DEAD ×1.15
 📉 ROC Filter               ✅ Active | p1 b3 ≥0.2%
-⚡ Vol Gate                 P38 / 80
-──────────────────────────────────────
-📌 Mark Price               66380.00
-💸 Funding Rate             🟢 0.0100% / 1h
-⏰ Next Funding             42m 15s
-🛡️ Funding Guard (LONG)     ✅ CLEAR (87% APR)
-──────────────────────────────────────
-🔪 Kill Position            $-0.31 / -$50.0 [USD]
-🚨 Circuit Breaker          $0.00 / -$30.0
-🛡️ Liq. Limit (%)           20% (SAFE ✓)
-🪢 Rekt Liq. Price          61,200.00 (7.8% dist)
+────────────────────────────────────────
+Trading Limit              200.00 USDC
+🕯️ Heikin Color            red
+🏦 Total Capital            2000.00 USDC
+💼 Used Capital             260.36 USDC
+📊 Capital Used (%)         13.02%
+🤖 Smart Capital            OFF
+📈 Realized P&L             0.00 USDC
+📉 Unrealized P&L           -23.25 USDC
+📊 PnL (ROE %)              -8.27%
+🪢 Rekt Liq. Price          n/a
+🛡️ Liq. Limit              n/a
+🔪 Kill Position            OFF
+🚨 Circuit Breaker          OFF
+⚠️ Margin Usage            16.12%
+🕒 Days Trading             4 days
+💰 Position margin          260.36 USDC
+💵 Margin available         3193.75 USDC
+📦 Position size            22.19 HYPE
+📉 Current Volume           115.98
+📊 Avg Volume               2,495.71
+🕒 Buy Cooloff              CLEAR
+📦 Total Volume             1325.05 USDC
+────────────────────────────────────────
+⚙️ Mode                    💰 CLOSE
+📐 Profit Mode              Price %
+🎯 Target Exit              60.6094
+🎗️ Dyn Trailing            0.30%
+🔻 Trailing Stop            n/a
+────────────────────────────────────────
+🏛️ Inst. Trend             NEUTRAL
+🏛️ Bull Score              4.5
+🏛️ Bear Score              3.5
+🏛️ Grade                   C
+🏛️ HTF Bias                BULL
+────────────────────────────────────────
+🌊 Partial SELL             READY
+🌊 Next Partial Close OF    59.721300 (+1.80%)
+────────────────────────────────────────
+📌 Mark Price               58.67
+💸 Funding Rate             -0.000265%/h
+📊 Cum. Funding             +1.3130 USDC
+🛡️ Funding Guard           ✅ OK (2.3% RECV)
+⏰ Next Funding             9m 9s
+📈 Open Interest            $1,326,222,432
+📉 OI Deviation 15m         -0.0%
+────────────────────────────────────────
+Order Type                 💸 Market
 ```
 
 The SHORT slave shows its own sidebar with position, ROE, uPnL, trail stop, target exit price, liquidation price, and funding rate — live on every tick.
@@ -221,27 +280,43 @@ The SHORT slave shows its own sidebar with position, ROE, uPnL, trail stop, targ
 
 | Exchange | Status | Hedge Mode | Notes |
 |---|---|---|---|
-| **Bitget** | ✅ Final | ✅ Full Hedge | USDT-M & COIN-M futures, live & testnet |
-| **Bybit** | ✅ Final | ✅ Full Hedge | USDT perpetuals, demo & live |
-| Binance Futures | ✅ Single-direction | ❌ | Use `orderflow_scalp_fast` / `orderflow_institutional_fast` |
-| dYdX v4 | ✅ Single-direction | ❌ | Same |
-| Kraken Futures | ✅ Single-direction | ❌ | Same |
+| **Bitget** | ✅ Final | ✅ Native Hedge | USDT-M & COIN-M futures, live & testnet — LONG and SHORT on one connection |
+| **Bybit** | ✅ Final | ✅ Native Hedge | USDT perpetuals, demo & live — LONG and SHORT on one connection |
+| **Binance Futures** | ✅ Final | ✅ Cross-Quote Hedge | Two pairs, one shared Multi-Assets margin pool — see setup below |
+| **Hyperliquid** | ✅ Final | ✅ Multi-Instance Hedge | Two wallets / connections — see setup below |
+
+
+Hedge Mode now runs on four exchanges, using three different mechanisms depending on what each exchange allows. The next section walks through all three.
+
+---
+
+## 🔀 Hedge Topologies & Multi-Pair Setup
+
+Not every exchange lets you hold LONG and SHORT the same way. Bitget and Bybit hold both positions on one connection natively. Binance Futures and Hyperliquid need a second pair (or a second wallet) to represent the opposing side — and each does it differently.
+
+| Topology | Exchanges | Pair naming |
+|---|---|---|
+| **Native Hedge** | Bitget, Bybit | Single pair — the exchange holds both sides internally |
+| **Cross-Quote Hedge** | Binance Futures | Two pairs, distinguished by quote asset |
+| **Multi-Instance Hedge** | Hyperliquid | Two wallets, same pair name on both |
+
+> 📖 [Full Setup Guide — Binance Cross-Quote & Hyperliquid Multi-Instance →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-27-multi-exchange-hedge-setups--binance-futures--hyperliquid-v117)
 
 ---
 
 ## 📖 Full Documentation
 
 - [§1 — What is Hedge Mode?](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#1-what-is-hedge-mode)
-- [§2 — Master / Slave Architecture](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#2-master-slave-pair-architecture)
-- [§3 — OrderFlow in Hedge Mode](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#3-orderflow-trading-in-hedge-mode)
-- [§4 — The Machine Learning Engine (GA)](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#4-the-machine-learning-engine)
-- [§5 — Support & Resistance Confluence](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#5-support-resistance-confluence-hedge-adapted)
+- [§2 — Master / Slave Architecture](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#2-master-slave-pair-architecture) 
+- [§3 — OrderFlow in Hedge Mode](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#3-orderflow-trading-in-hedge-mode) 
+- [§4 — The Machine Learning Engine (GA)](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#4-the-machine-learning-engine) 
+- [§5 — Support & Resistance Confluence](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#5-support-resistance-confluence-hedge-adapted) 
 - [§6 — Smart S/R Bias](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#6-smart-sr-bias-direction-gate)
 - [§7 — Trap Detection & Absorption](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#7-bull--bear-trap-detection)
 - [§9 — Institution Hours](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#9-institution-hours)
 - [§10 — Cross-Exchange Signal Pair](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#10-cross-exchange-signal-pair)
-- [§11 — ATR Strength Classifier *(Hedge Exclusive)*](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#11-atr-strength-classifier-hedge-exclusive)
-- [§12 — ROC Momentum Filter *(Hedge Exclusive)*](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#12-roc-momentum-filter-hedge-exclusive)
+- [§11 — ATR Strength Classifier](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-11-atr-strength-classifier) 
+- [§12 — ROC Momentum Filter](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-12-roc-momentum-filter) 
 - [§13 — Kill Position — Bidirectional](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#13-kill-position-bidirectional-hedge-edition)
 - [§14 — Liquidation Guard](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#14-liquidation-guard-bidirectional-protection)
 - [§15 — Funding Rate Intelligence — Side-Aware](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#15-funding-rate-intelligence-side-aware)
@@ -253,6 +328,41 @@ The SHORT slave shows its own sidebar with position, ROE, uPnL, trail stop, targ
 - [§23 — Full Settings Reference](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#23-editor-settings-reference)
 - [§25 — OrderFlow vs Classic Branch](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#25-orderflow-vs-classic-branch-hedge)
 - [§26 — Tips & Best Practices](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#26-tips-best-practices-for-hedge-mode)
+- [§27 — Multi-Exchange Hedge Setups (Binance Futures & Hyperliquid)](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-27-multi-exchange-hedge-setups--binance-futures--hyperliquid-v117)
+- [§28 — Open Interest Guard](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-28-open-interest-guard-hyperliquid)
+- [§29 — Safe Config Example](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-29-safe-config-example)
+- [§30 — Version History](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-30-version-history--v117)
+
+---
+
+## 🧭 Recommended Setup & Best Practices
+
+A handful of habits separate a hedge that runs itself from one that needs constant babysitting: symmetric wallets on Hyperliquid, conservative leverage (2–5x swing, 5–10x scalp), understanding the `HEDGE_RATIO` band before touching it, and running one exchange family per Gunbot instance.
+
+> 📖 [Full Tips & Best Practices →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#26-tips-best-practices-for-hedge-mode)
+
+---
+
+## 🧾 Safe Config Example
+
+A complete, ready-to-run `config.js` for a Hyperliquid multi-instance hedge — both connections, both pairs, all strategy settings — is available as a starting template. Download it, rename to `config.js`, fill in your own wallet and API details, and start Gunbot.
+
+> 📖 [Full Safe Config Guide & Download →](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-29-safe-config-example)
+
+---
+
+## 🆕 Version History — v1.1.7
+
+
+
+- Full Hyperliquid multi-instance hedge support, with a dedicated Hedge Partner Exchange field
+- Per-wallet isolation, so account data from one connection never leaks into the other
+- Open Interest Guard for Hyperliquid — absolute notional and delta-window modes
+- Order sizing correction for exchanges that require coin quantity instead of USD notional
+- Wallet-disambiguated sidebar labels across multi-instance setups
+- Cross-exchange safety abort to prevent cross-contamination when running multiple exchanges on one instance
+
+For the full version-by-version changelog, check [Section 30 of the wiki](https://github.com/truitaman/OrderFlow-Magic-Hedge/wiki#-30-version-history--v117) or the [Telegram community](https://t.me/+xQtQ9Y4AOc9lZTNk).
 
 ---
 
@@ -260,7 +370,7 @@ The SHORT slave shows its own sidebar with position, ROE, uPnL, trail stop, targ
 
 Requires a valid **Gunbot license** (Ultimate, Unlimited, BR, or MM).
 
-> 🛒 **Purchase Wick Magic Hedge — soon™**
+> 🛒 **Get Wick Magic Hedge** : https://checkout.gunbot.com/crazymop/wmhedge
 
 👉 **Join the Telegram community:**  
 https://t.me/+xQtQ9Y4AOc9lZTNk
