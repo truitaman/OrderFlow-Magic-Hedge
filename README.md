@@ -368,7 +368,7 @@ For the full version-by-version changelog, check [Section 30 of the wiki](https:
 
 ## 🛍️ Get the Strategy
 
-Requires a valid **Gunbot license** (Ultimate, Unlimited, BR, or MM).
+Requires a valid **Gunbot license** (Defi or Unlimited).
 
 > 🛒 **Get Wick Magic Hedge** : https://checkout.gunbot.com/crazymop/wmhedge
 
