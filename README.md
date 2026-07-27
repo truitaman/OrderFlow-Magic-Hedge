@@ -375,8 +375,5 @@ Requires a valid **Gunbot license** (Defi or Unlimited).
 👉 **Join the Telegram community:**  
 https://t.me/+xQtQ9Y4AOc9lZTNk
 
-Already running Wick Magic Futures?  
-→ Hedge is a separate strategy file. Ask in Telegram for bundle options.
-
 No Gunbot license yet?  
 → [Get Gunbot Ultimate](gunbot.com/es)
