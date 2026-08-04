@@ -282,11 +282,12 @@ The SHORT slave shows its own sidebar with position, ROE, uPnL, trail stop, targ
 |---|---|---|---|
 | **Bitget** | ✅ Final | ✅ Native Hedge | USDT-M & COIN-M futures, live & testnet — LONG and SHORT on one connection |
 | **Bybit** | ✅ Final | ✅ Native Hedge | USDT perpetuals, demo & live — LONG and SHORT on one connection |
+| **Aster Futures** | ✅ Final | ✅ Native Hedge | USD perpetuals, live — LONG and SHORT on one connection |
 | **Binance Futures** | ✅ Final | ✅ Cross-Quote Hedge | Two pairs, one shared Multi-Assets margin pool — see setup below |
 | **Hyperliquid** | ✅ Final | ✅ Multi-Instance Hedge | Two wallets / connections — see setup below |
 
 
-Hedge Mode now runs on four exchanges, using three different mechanisms depending on what each exchange allows. The next section walks through all three.
+Hedge Mode now runs on five exchanges, using three different mechanisms depending on what each exchange allows. The next section walks through all three.
 
 ---
 
